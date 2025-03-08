@@ -14,6 +14,7 @@ import google.generativeai as genai
 from nltk.tokenize import word_tokenize
 import string
 import numpy as np
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -28,8 +29,8 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 app.json_encoder = CustomJSONEncoder
 
-# Set up Gemini API
-GEMINI_API_KEY = "AIzaSyCw2Zs-rV3L9AUrGAGwGjbbZLFPEhk_CGE"
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Available Gemini models (use models that actually exist)
