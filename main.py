@@ -332,16 +332,18 @@ def generate_email_template_with_gemini(job_description, resume_text, match_scor
         {', '.join(shared_skills[:10]) if shared_skills else "No direct skill matches found"}
 
         IMPORTANT REQUIREMENTS:
-        1. Create a completely original email structure based on this specific job and resume - DO NOT follow a template
-        2. Only mention skills and experience that appear in the resume
+        1. Create a completely original email structure based on this specific job and resume - DO NOT follow a template (Strictly small up to 1-2 short paragraphs)
+        2. Only mention skills and experience that appear in the resume,as bullet points
         3. Highlight specific connections between the candidate's experience and the company's needs
         4. Maintain a professional but conversational tone
         5. Include a brief introduction, 2-3 relevant qualifications/experiences, and a closing paragraph
         6. Ensure the email feels authentically tailored to THIS specific job, not generic
-        7. Keep the overall length appropriate for an email (250-350 words)
-        8. Don't include generic "fill in the blank" placeholders that the user must complete
-        9. Vary sentence structure and paragraph flow to feel natural and conversational
-        10. Create a dynamic subject line that references both the position and a key qualification
+        
+        7. Don't include generic "fill in the blank" placeholders that the user must complete
+        8. Vary sentence structure and paragraph flow to feel natural and conversational
+        9. Create a dynamic subject line that references both the position and a key qualification
+        10. At the end, below best regards, add the person's name and if the linkedin or github profile are there or other also inculde them one blow the other 
+        11. I don't want to fill in the blanks, so don't include any placeholders
         """
         
         # Generate content with Gemini
@@ -387,23 +389,21 @@ def generate_linkedin_message_with_gemini(job_description, resume_text, match_sc
         
         # Create prompt for Gemini
         prompt = f"""
-        Create a concise, personalized LinkedIn message to a hiring manager about the {role} position. The message should be based on the following information:
-
-        JOB DESCRIPTION KEYWORDS:
-        {', '.join(jd_keywords[:8])}
-
-        MATCHING SKILLS IN RESUME:
-        {', '.join(shared_skills[:5]) if shared_skills else "No direct skill matches found"}
-
+        Create a very brief LinkedIn message to any employee at a company about a job application. 
+        
+        JOB ROLE: {role}
+        TOP MATCHING SKILL: {shared_skills[0] if shared_skills else "technical"}
+        
         REQUIREMENTS:
-        1. Create a unique message tailored to this specific job and resume
-        2. MUST be under 200 characters (strict LinkedIn limit)
-        3. Highlight 1-2 most relevant skills from the resume that match the job
-        4. Maintain professional but conversational tone
-        5. Include a specific question or call to action
-        6. Do not use generic placeholders or templates
-        7. Focus on making a connection between your experience and their needs
-        8. Be extremely concise while maintaining clarity and professionalism
+        1. Start with "Hi [Name]," - this is the ONLY placeholder allowed
+        2. STRICT 200 character limit MAXIMUM including the placeholder
+        3. Make it clear you're applying for the specific role
+        4. Also tell what the role i am looking for
+        5. Include a brief question about the application process or role
+        6. Create a message that would make sense to ANY employee (not just HR)
+        7. Make it immediately clear what you're requesting
+        8. Extremely concise but still conversational and professional
+        9. If possible also ask for refferal, or any guide from the person
         """
         
         # Generate content with Gemini
@@ -412,14 +412,10 @@ def generate_linkedin_message_with_gemini(job_description, resume_text, match_sc
             response = model.generate_content(prompt)
             message = response.text.strip()
             
-            # Ensure the message is 200 characters or less
+            # Ensure the message is under 200 characters
             if len(message) > 200:
-                # Try to truncate at a sentence ending if possible
-                truncated = message[:197] + "..."
-                last_period = truncated.rfind(".")
-                if last_period > 150:  # Only use period truncation if it doesn't cut too much
-                    return message[:last_period + 1]
-                return truncated
+                # Try to make a clean cutoff
+                return message[:197] + "..."
             return message
         except Exception as gemini_err:
             print(f"Specific Gemini error: {gemini_err}")
@@ -428,10 +424,10 @@ def generate_linkedin_message_with_gemini(job_description, resume_text, match_sc
     except Exception as e:
         print(f"Error generating LinkedIn message with Gemini: {e}")
         
-        # Fallback to a simpler template
+        # Fallback to a simple template
         skill = extract_keywords(resume_text, 1, True)[0] if extract_keywords(resume_text, 1, True) else "technical"
         
-        return f"""Hi, I applied for the {role} position and wanted to connect. My experience with {skill} aligns well with your requirements. When might you be reviewing applications?"""
+        return f"""Hi [Name], I've applied for the {role} position at your company. My {skill} experience seems like a great fit. Could you share any insights about the team or hiring process?"""
 
 # Function to generate resume improvement suggestions using Gemini
 def generate_improvement_suggestions_with_gemini(job_description, resume_text):

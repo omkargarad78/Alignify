@@ -36,12 +36,9 @@ function initTheme() {
   if (savedTheme) {
     document.documentElement.className = savedTheme;
   } else {
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.className = 'dark';
-    } else {
-      document.documentElement.className = 'light';
-    }
+    // Set dark mode as default
+    document.documentElement.className = 'dark';
+    localStorage.setItem('theme', 'dark');
   }
 }
 
