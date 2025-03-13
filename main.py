@@ -309,32 +309,39 @@ def generate_email_template_with_gemini(job_description, resume_text, match_scor
         role_match = re.search(r'(position|role|job title|engineer)[:\s]+([\w\s]+)', job_description, re.IGNORECASE)
         role = role_match.group(2).strip() if role_match else "Software Engineer"
         
-        # Extract shared and missing skills
+        # Extract skills and requirements from both documents
         jd_keywords = extract_all_jd_keywords(job_description)
-        resume_keywords = extract_keywords(resume_text, 10, True)
+        resume_keywords = extract_all_keywords(resume_text)
         shared_skills = [word for word in resume_keywords if word.lower() in [k.lower() for k in jd_keywords]]
-        missing_skills = [word for word in jd_keywords if word.lower() not in resume_text.lower()]
+        
+        # Extract education and experience from resume
+        education_match = re.search(r'(?:education|university|college|degree)([^.]*.(?:degree|bachelor|master|phd)[^.]*\.)', resume_text, re.IGNORECASE)
+        education = education_match.group(1).strip() if education_match else None
         
         # Create prompt for Gemini
         prompt = f"""
-        Write a professional, personalized job application email for the {role} role at {company}. The email should express genuine enthusiasm for the company's work in {company_description if company_description else "digital asset trading and data processing"} and demonstrate how my skills and experience align with their needs.
+        Create a personalized job application email for the {role} position at {company}. The email should be tailored based on the following information:
 
-        As a final-year Computer Engineering student graduating in [Month, Year], my background in {', '.join(shared_skills[:3])} positions me well for this opportunity. Highlight my core strengths with brief, factual descriptions:
+        JOB DESCRIPTION SUMMARY:
+        {job_description[:500]}...
 
-        [Skill 1]: [Brief, specific example or achievement]
-        [Skill 2]: [Brief, specific example or achievement]
-        
-        Convey my interest in the company's mission or a specific aspect of the role, ensuring the email feels thoughtful and tailored. End with an invitation for a discussion, attaching my resume for further details on my projects and academic achievements.
+        RESUME SUMMARY:
+        {resume_text[:500]}...
 
-        Maintain perfect grammar, keep the tone professional but warm, and ensure the email reflects the unique requirements and culture of the company.
-        
+        MATCHING SKILLS BETWEEN RESUME AND JOB:
+        {', '.join(shared_skills[:10]) if shared_skills else "No direct skill matches found"}
+
         IMPORTANT REQUIREMENTS:
-        1. Be FACTUAL - only mention skills and experience actually found in the resume
-        2. DO NOT exaggerate or add skills not mentioned in the resume
-        3. Keep language professional but modest
-        4. Follow the exact format including bullet points 
-        5. Ensure perfect grammar throughout
-        6. Keep skills descriptions brief and factual
+        1. Create a completely original email structure based on this specific job and resume - DO NOT follow a template
+        2. Only mention skills and experience that appear in the resume
+        3. Highlight specific connections between the candidate's experience and the company's needs
+        4. Maintain a professional but conversational tone
+        5. Include a brief introduction, 2-3 relevant qualifications/experiences, and a closing paragraph
+        6. Ensure the email feels authentically tailored to THIS specific job, not generic
+        7. Keep the overall length appropriate for an email (250-350 words)
+        8. Don't include generic "fill in the blank" placeholders that the user must complete
+        9. Vary sentence structure and paragraph flow to feel natural and conversational
+        10. Create a dynamic subject line that references both the position and a key qualification
         """
         
         # Generate content with Gemini
@@ -349,29 +356,21 @@ def generate_email_template_with_gemini(job_description, resume_text, match_scor
     except Exception as e:
         print(f"Error generating email with Gemini: {e}")
         
-        # Fallback to a template based on the user's example
+        # Fallback to a simple template if Gemini fails
         shared_skills_str = ', '.join(extract_keywords(resume_text, 5, True)[:2])
-        missing_skills_str = ', '.join(find_missing_keywords(job_description, resume_text)[:2])
         
-        return f"""Subject: {role} Application - [Your Name]
+        return f"""Subject: Application for {role} Position
 
-Dear Hiring Team,
+Dear Hiring Team at {company},
 
-{company}'s work in digital asset trading and data processing really excites me, and I'm eager to learn more about the {role} role. As a final-year Computer Engineering student graduating in [Month, Year], I'm confident my skills align well with your needs.
+I am writing to express my interest in the {role} position. Based on the job description, I believe my background in {shared_skills_str} would be valuable to your team.
 
-My core strengths include:
+[Personalize this section with your relevant experience and qualifications]
 
-* {shared_skills_str.split(', ')[0] if ',' in shared_skills_str else shared_skills_str}: Developed multiple projects demonstrating strong problem-solving capabilities
-* {shared_skills_str.split(', ')[1] if ',' in shared_skills_str and len(shared_skills_str.split(', ')) > 1 else "Technical skills"}: Applied these skills in academic and personal projects with measurable results
-
-I'm particularly interested in how your company is advancing in the tech space and would welcome the opportunity to discuss how I can contribute to your team.
-
-My resume is attached for your review. Thank you for considering my application, and I look forward to the possibility of speaking with you.
+I look forward to the opportunity to discuss how my skills align with your needs.
 
 Best regards,
 [Your Name]
-[Your Email]
-[Your Phone Number]
 """
 
 # Function to generate LinkedIn message using Gemini
@@ -379,8 +378,8 @@ def generate_linkedin_message_with_gemini(job_description, resume_text, match_sc
     try:
         # Extract key information
         jd_keywords = extract_all_jd_keywords(job_description)
-        resume_keywords = extract_keywords(resume_text, 5, True)
-        shared_skills = [word for word in resume_keywords if word in jd_keywords]
+        resume_keywords = extract_all_keywords(resume_text)
+        shared_skills = [word for word in resume_keywords if word.lower() in [k.lower() for k in jd_keywords]]
         
         # Extract role if possible
         role_match = re.search(r'(position|role|job title|engineer)[:\s]+([\w\s]+)', job_description, re.IGNORECASE)
@@ -388,20 +387,23 @@ def generate_linkedin_message_with_gemini(job_description, resume_text, match_sc
         
         # Create prompt for Gemini
         prompt = f"""
-        Write a very short LinkedIn message to a hiring manager within 200 characters total (strict limit). Follow this template idea but keep it under 200 chars:
+        Create a concise, personalized LinkedIn message to a hiring manager about the {role} position. The message should be based on the following information:
 
-        Hi [Name], I applied for the {role} role. My background in [top skill] and [secondary skill] aligns well with the requirements. When might I hear about next steps?
+        JOB DESCRIPTION KEYWORDS:
+        {', '.join(jd_keywords[:8])}
 
-        Replace the placeholders with:
-        - Top skill, secondary skill: Use ONLY skills that definitely appear in the resume: {', '.join(shared_skills[:2]) if shared_skills else "programming, problem-solving"}
+        MATCHING SKILLS IN RESUME:
+        {', '.join(shared_skills[:5]) if shared_skills else "No direct skill matches found"}
 
-        CRITICAL REQUIREMENTS:
-        1. MUST be 200 characters or fewer (this is a hard limit)
-        2. Be extremely concise but professional
-        3. Only mention skills present in the resume data
-        4. Focus on brevity while maintaining clarity
-        5. Perfect grammar throughout
-        6. Don't include a signature
+        REQUIREMENTS:
+        1. Create a unique message tailored to this specific job and resume
+        2. MUST be under 200 characters (strict LinkedIn limit)
+        3. Highlight 1-2 most relevant skills from the resume that match the job
+        4. Maintain professional but conversational tone
+        5. Include a specific question or call to action
+        6. Do not use generic placeholders or templates
+        7. Focus on making a connection between your experience and their needs
+        8. Be extremely concise while maintaining clarity and professionalism
         """
         
         # Generate content with Gemini
@@ -426,11 +428,10 @@ def generate_linkedin_message_with_gemini(job_description, resume_text, match_sc
     except Exception as e:
         print(f"Error generating LinkedIn message with Gemini: {e}")
         
-        # Fallback to a template based on the user's example (ensuring it's under 200 chars)
-        skill1 = extract_keywords(resume_text, 5, True)[0] if extract_keywords(resume_text, 5, True) else "programming"
-        skill2 = extract_keywords(resume_text, 5, True)[1] if len(extract_keywords(resume_text, 5, True)) > 1 else "technical"
+        # Fallback to a simpler template
+        skill = extract_keywords(resume_text, 1, True)[0] if extract_keywords(resume_text, 1, True) else "technical"
         
-        return f"""Hi [Name], I applied for the {role} role. My {skill1} and {skill2} skills align with your needs. When might I hear about next steps?"""
+        return f"""Hi, I applied for the {role} position and wanted to connect. My experience with {skill} aligns well with your requirements. When might you be reviewing applications?"""
 
 # Function to generate resume improvement suggestions using Gemini
 def generate_improvement_suggestions_with_gemini(job_description, resume_text):
